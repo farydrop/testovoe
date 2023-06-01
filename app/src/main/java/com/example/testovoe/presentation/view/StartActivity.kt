@@ -17,24 +17,25 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsIntent
 import com.example.testovoe.R
-import com.example.testovoe.presentation.viewmodel.StartViewModel
 import com.example.testovoe.databinding.ActivityStartBinding
+import com.example.testovoe.presentation.viewmodel.StartViewModel
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
+import java.security.Security
 import java.util.concurrent.Executors
-import org.koin.androidx.viewmodel.ext.android.viewModel
 
 
 class StartActivity : AppCompatActivity() {
@@ -60,29 +61,12 @@ class StartActivity : AppCompatActivity() {
         //getValueFromFireBaseRemoteConfig()
 
         setContentView(binding.root)
+        Security.setProperty("ssl.SocketFactory.provider", "com.ibm.jsse2.SSLSocketFactoryImpl")
+
 
         val url = remoteConfig.getString("url")
         binding.tv.text = url
 
-        viewModel.showActivity.observe(this){
-            startActivity(
-                Intent(
-                    this@StartActivity,
-                    MainActivity::class.java
-                )
-            )
-            finish()
-        }
-
-        viewModel.showChromeTabs.observe(this){
-            val customIntent = CustomTabsIntent.Builder()
-            //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
-            openCustomTab(
-                this@StartActivity,
-                customIntent.build(),
-                Uri.parse(url)
-            )
-        }
 
         /*remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
@@ -94,6 +78,44 @@ class StartActivity : AppCompatActivity() {
                 Log.w(TAG, "Config update error with code: " + error.code, error)
             }
         })*/
+
+        fun isURLReachable() {
+            CoroutineScope(Dispatchers.IO).launch {
+                val url = URL(remoteConfig.getString("url"))
+                /*val socket = Socket()
+                socket.soTimeout = 200
+                socket.localAddress
+                socket.connect(InetSocketAddress(url.host, url.port), 200)
+                val isConnect = socket.isConnected
+                socket.close()*/
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+
+                connection.responseCode
+                val t = if (connection.responseCode == HttpURLConnection.HTTP_OK) 200 else 404
+                CoroutineScope(Dispatchers.Main).launch {
+                    if (t == 200) {
+                        val customIntent = CustomTabsIntent.Builder()
+                        //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
+                        openCustomTab(
+                            this@StartActivity,
+                            customIntent.build(),
+                            Uri.parse(url.toString())
+                        )
+                    } else {
+                        startActivity(
+                            Intent(
+                                this@StartActivity,
+                                MainActivity::class.java
+                            )
+                        )
+                        finish()
+                    }
+                }
+            }
+        }
+
+        isURLReachable()
 
 
         remoteConfig.fetchAndActivate().addOnCompleteListener(this) { task ->
@@ -120,11 +142,30 @@ class StartActivity : AppCompatActivity() {
                             Uri.parse("https://ya.ru/")
                         )
                     } else {
-                        viewModel.getUrlResponse(url)
-                        /*GlobalScope.launch {
+                        isURLReachable()
+                        /*CoroutineScope(Dispatchers.IO).launch {
                             //Log.d("MyTag","$u")
                             val u = isURLReachable()
-                            withContext(monoThreadDispatcher) {
+                            *//*withContext(Dispatchers.Main) {
+                                if (u) {
+                                    val customIntent = CustomTabsIntent.Builder()
+                                    //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
+                                    openCustomTab(
+                                        this@StartActivity,
+                                        customIntent.build(),
+                                        Uri.parse(url)
+                                    )
+                                } else {
+                                    startActivity(
+                                        Intent(
+                                            this@StartActivity,
+                                            MainActivity::class.java
+                                        )
+                                    )
+                                    finish()
+                                }
+                            }*//*
+                            CoroutineScope(Dispatchers.Main).launch {
                                 if (u) {
                                     val customIntent = CustomTabsIntent.Builder()
                                     //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
@@ -158,15 +199,6 @@ class StartActivity : AppCompatActivity() {
         }
     }
 
-    private fun isURLReachable(): Boolean {
-        val url = URL(remoteConfig.getString("url"))
-        val socket = Socket()
-        socket.soTimeout = 200
-        socket.connect(InetSocketAddress(url.host, url.port), 200)
-        val isConnect = socket.isConnected
-        socket.close()
-        return isConnect
-    }
 
     /*private fun getValueFromFireBaseRemoteConfig() {
         remoteConfig.fetchAndActivate()
