@@ -10,4 +10,6 @@
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>
 -->
+    <exclude domain="sharedpref" path="appsflyer-data"/>
+    <exclude domain="sharedpref" path="AdaptySDKPrefs.xml"/>
 </full-backup-content>

@@ -27,6 +27,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
+import com.onesignal.OneSignal
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -48,33 +49,20 @@ class StartActivity : AppCompatActivity() {
     private val remoteConfig: FirebaseRemoteConfig = Firebase.remoteConfig
     val viewModel: StartViewModel by viewModel()
 
-    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStartBinding.inflate(layoutInflater)
-
-        val configSettings = remoteConfigSettings {
-            minimumFetchIntervalInSeconds = 3600
-        }
+        val configSettings = remoteConfigSettings { minimumFetchIntervalInSeconds = 3600 }
         remoteConfig.setConfigSettingsAsync(configSettings)
-        //remoteConfig.setDefaultsAsync(R.xml.url_default_value)
-        //getValueFromFireBaseRemoteConfig()
-
         setContentView(binding.root)
-        Security.setProperty("ssl.SocketFactory.provider", "com.ibm.jsse2.SSLSocketFactoryImpl")
-
-
         val url = remoteConfig.getString("url")
         saveUrl(url)
-        //binding.tv.text = url
-
 
         remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
                 Log.d(TAG, "Updated keys: " + configUpdate.updatedKeys)
                 remoteConfig.activate()
             }
-
             override fun onError(error: FirebaseRemoteConfigException) {
                 Log.w(TAG, "Config update error with code: " + error.code, error)
             }
@@ -121,16 +109,9 @@ class StartActivity : AppCompatActivity() {
 
 
         remoteConfig.fetchAndActivate().addOnCompleteListener(this) { task ->
-            /*val url: String = remoteConfig.getString("url")
-            val flag: Boolean = remoteConfig.getBoolean("flag")*/
             if (task.isSuccessful) {
                 val updated = task.result
                 Log.d(TAG, "Config params updated: $updated")
-                Toast.makeText(
-                    this,
-                    "Fetch and activate succeeded",
-                    Toast.LENGTH_SHORT,
-                ).show()
                 val url: String = remoteConfig.getString("url")
                 val flag: Boolean = remoteConfig.getBoolean("flag")
                 saveUrl(url)
@@ -168,11 +149,6 @@ class StartActivity : AppCompatActivity() {
                     finish()
                 }
             } else {
-                Toast.makeText(
-                    this,
-                    "Fetch failed",
-                    Toast.LENGTH_SHORT,
-                ).show()
                 startActivity(
                     Intent(
                         this@StartActivity,
@@ -188,7 +164,6 @@ class StartActivity : AppCompatActivity() {
 
 
     private fun saveUrl(url: String) {
-        //val urlText = config.getString("url")
         val sharedPreference = getSharedPreferences("application", Context.MODE_PRIVATE)
         val editor = sharedPreference.edit()
         editor.putString("url", url)
@@ -196,7 +171,6 @@ class StartActivity : AppCompatActivity() {
     }
 
     private fun getUrl(url: String): String? {
-        //val urlText = config.getString("url")
         val sharedPreference = getSharedPreferences("application", Context.MODE_PRIVATE)
         return sharedPreference.getString("url", url)
     }
@@ -207,8 +181,6 @@ class StartActivity : AppCompatActivity() {
     }
 
     private fun openCustomTab(activity: Activity, customTabsIntent: CustomTabsIntent, uri: Uri) {
-        // package name is the default package
-        // for our custom chrome tab
         val packageName = "com.android.chrome"
         if (packageName != null) {
             customTabsIntent.intent.setPackage(packageName)
@@ -239,9 +211,5 @@ class StartActivity : AppCompatActivity() {
             }
         }
         return false
-    }
-
-    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
-        super.onSaveInstanceState(outState, outPersistentState)
     }
 }

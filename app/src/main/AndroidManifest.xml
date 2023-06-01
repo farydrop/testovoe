@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove"/>
+
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -13,12 +16,14 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <application
         android:name=".presentation.App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        tools:replace="android:fullBackupContent"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -26,10 +31,10 @@
         android:theme="@style/Theme.Testovoe"
         tools:targetApi="31">
         <activity
-            android:name=".ThridActivity"
+            android:name=".presentation.view.ThridActivity"
             android:exported="false" />
         <activity
-            android:name=".SecondActivity"
+            android:name=".presentation.view.SecondActivity"
             android:exported="false" />
         <activity
             android:name=".presentation.view.MainActivity"

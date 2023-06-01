@@ -1,4 +1,4 @@
-package com.example.testovoe
+package com.example.testovoe.presentation.view
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
