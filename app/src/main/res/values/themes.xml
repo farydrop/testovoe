@@ -3,7 +3,23 @@
     <style name="Base.Theme.Testovoe" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
+
+    <style name="button" parent="@android:style/Widget.Button">
+        <item name="android:background">@drawable/button_background</item>
+    </style>
+
+    <style name="YourApplicationTheme" parent="android:style/Theme.NoTitleBar">
+        <item name="android:buttonStyle">@style/button</item>
+    </style>
+
+    <style name="cardView" parent="CardView">
+        <item name="android:background">@drawable/bottom_sheet_background</item>
+    </style>
+
+
 
     <style name="Theme.Testovoe" parent="Base.Theme.Testovoe" />
 </resources>

@@ -11,6 +11,7 @@ import android.net.NetworkCapabilities.TRANSPORT_WIFI
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PersistableBundle
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -20,7 +21,10 @@ import com.example.testovoe.R
 import com.example.testovoe.databinding.ActivityStartBinding
 import com.example.testovoe.presentation.viewmodel.StartViewModel
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.ConfigUpdate
+import com.google.firebase.remoteconfig.ConfigUpdateListener
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.ktx.remoteConfig
 import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -43,10 +47,6 @@ class StartActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStartBinding
     private val remoteConfig: FirebaseRemoteConfig = Firebase.remoteConfig
     val viewModel: StartViewModel by viewModel()
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        throwable.printStackTrace()
-    }
-    private val monoThreadDispatcher = Executors.newFixedThreadPool(1).asCoroutineDispatcher()
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +57,7 @@ class StartActivity : AppCompatActivity() {
             minimumFetchIntervalInSeconds = 3600
         }
         remoteConfig.setConfigSettingsAsync(configSettings)
-        remoteConfig.setDefaultsAsync(R.xml.url_default_value)
+        //remoteConfig.setDefaultsAsync(R.xml.url_default_value)
         //getValueFromFireBaseRemoteConfig()
 
         setContentView(binding.root)
@@ -65,10 +65,11 @@ class StartActivity : AppCompatActivity() {
 
 
         val url = remoteConfig.getString("url")
-        binding.tv.text = url
+        saveUrl(url)
+        //binding.tv.text = url
 
 
-        /*remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
+        remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
                 Log.d(TAG, "Updated keys: " + configUpdate.updatedKeys)
                 remoteConfig.activate()
@@ -77,31 +78,34 @@ class StartActivity : AppCompatActivity() {
             override fun onError(error: FirebaseRemoteConfigException) {
                 Log.w(TAG, "Config update error with code: " + error.code, error)
             }
-        })*/
+        })
 
         fun isURLReachable() {
             CoroutineScope(Dispatchers.IO).launch {
-                val url = URL(remoteConfig.getString("url"))
-                /*val socket = Socket()
-                socket.soTimeout = 200
-                socket.localAddress
-                socket.connect(InetSocketAddress(url.host, url.port), 200)
-                val isConnect = socket.isConnected
-                socket.close()*/
+                val url = URL(getUrl(url))
                 val connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "GET"
-
                 connection.responseCode
                 val t = if (connection.responseCode == HttpURLConnection.HTTP_OK) 200 else 404
                 CoroutineScope(Dispatchers.Main).launch {
                     if (t == 200) {
-                        val customIntent = CustomTabsIntent.Builder()
-                        //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
-                        openCustomTab(
-                            this@StartActivity,
-                            customIntent.build(),
-                            Uri.parse(url.toString())
-                        )
+                        if (isInternetAvailable()){
+                            val customIntent = CustomTabsIntent.Builder()
+                            openCustomTab(
+                                this@StartActivity,
+                                customIntent.build(),
+                                Uri.parse(url.toString())
+                            )
+                            finish()
+                        } else {
+                            startActivity(
+                                Intent(
+                                    this@StartActivity,
+                                    MainActivity::class.java
+                                )
+                            )
+                            finish()
+                        }
                     } else {
                         startActivity(
                             Intent(
@@ -114,8 +118,6 @@ class StartActivity : AppCompatActivity() {
                 }
             }
         }
-
-        isURLReachable()
 
 
         remoteConfig.fetchAndActivate().addOnCompleteListener(this) { task ->
@@ -133,118 +135,54 @@ class StartActivity : AppCompatActivity() {
                 val flag: Boolean = remoteConfig.getBoolean("flag")
                 saveUrl(url)
 
+
                 if (flag) {
                     if (url.isEmpty()) {
-                        val customIntent = CustomTabsIntent.Builder()
-                        openCustomTab(
-                            this@StartActivity,
-                            customIntent.build(),
-                            Uri.parse("https://ya.ru/")
-                        )
+                        if (isInternetAvailable()){
+                            val customIntent = CustomTabsIntent.Builder()
+                            openCustomTab(
+                                this@StartActivity,
+                                customIntent.build(),
+                                Uri.parse("https://ya.ru/")
+                            )
+                            finish()
+                        } else {
+                            startActivity(
+                                Intent(
+                                    this@StartActivity,
+                                    MainActivity::class.java
+                                )
+                            )
+                            finish()
+                        }
                     } else {
                         isURLReachable()
-                        /*CoroutineScope(Dispatchers.IO).launch {
-                            //Log.d("MyTag","$u")
-                            val u = isURLReachable()
-                            *//*withContext(Dispatchers.Main) {
-                                if (u) {
-                                    val customIntent = CustomTabsIntent.Builder()
-                                    //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
-                                    openCustomTab(
-                                        this@StartActivity,
-                                        customIntent.build(),
-                                        Uri.parse(url)
-                                    )
-                                } else {
-                                    startActivity(
-                                        Intent(
-                                            this@StartActivity,
-                                            MainActivity::class.java
-                                        )
-                                    )
-                                    finish()
-                                }
-                            }*//*
-                            CoroutineScope(Dispatchers.Main).launch {
-                                if (u) {
-                                    val customIntent = CustomTabsIntent.Builder()
-                                    //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
-                                    openCustomTab(
-                                        this@StartActivity,
-                                        customIntent.build(),
-                                        Uri.parse(url)
-                                    )
-                                } else {
-                                    startActivity(
-                                        Intent(
-                                            this@StartActivity,
-                                            MainActivity::class.java
-                                        )
-                                    )
-                                    finish()
-                                }
-                            }
-                        }*/
                     }
                 } else {
-                    Toast.makeText(
-                        this,
-                        "Fetch failed",
-                        Toast.LENGTH_SHORT,
-                    ).show()
+                    startActivity(
+                        Intent(
+                            this@StartActivity,
+                            MainActivity::class.java
+                        )
+                    )
+                    finish()
                 }
-            }
-
-
-        }
-    }
-
-
-    /*private fun getValueFromFireBaseRemoteConfig() {
-        remoteConfig.fetchAndActivate()
-            .addOnCompleteListener(this) { task ->
-                if (task.isSuccessful) {
-                    val updated = task.result
-                    Log.d(TAG, "Config params updated: $updated")
-                    Toast.makeText(
-                        this,
-                        "Fetch and activate succeeded",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Fetch failed",
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
-            }
-    }*/
-
-    suspend fun makeRequest(urlString: String) {
-        val url = URL(urlString)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "GET"
-
-        val responseCode = connection.responseCode
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val customIntent = CustomTabsIntent.Builder()
-            //customIntent.setToolbarColor(ContextCompat.getColor(this@StartActivity, R.color.holo_red_dark))
-            openCustomTab(
-                this@StartActivity,
-                customIntent.build(),
-                Uri.parse(url.toString())
-            )
-            //return responseCode
-        } else {
-            startActivity(
-                Intent(
-                    this@StartActivity,
-                    MainActivity::class.java
+            } else {
+                Toast.makeText(
+                    this,
+                    "Fetch failed",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                startActivity(
+                    Intent(
+                        this@StartActivity,
+                        MainActivity::class.java
+                    )
                 )
-            )
-            finish()
-            //throw Exception("Request failed with response code $responseCode")
+                finish()
+            }
+
+
         }
     }
 
@@ -273,19 +211,10 @@ class StartActivity : AppCompatActivity() {
         // for our custom chrome tab
         val packageName = "com.android.chrome"
         if (packageName != null) {
-
-            // we are checking if the package name is not null
-            // if package name is not null then we are calling
-            // that custom chrome tab with intent by passing its
-            // package name.
             customTabsIntent.intent.setPackage(packageName)
 
-            // in that custom tab intent we are passing
-            // our url which we have to browse.
             customTabsIntent.launchUrl(activity, uri)
         } else {
-            // if the custom tabs fails to load then we are simply
-            // redirecting our user to users device default browser.
             activity.startActivity(Intent(Intent.ACTION_VIEW, uri))
         }
     }
@@ -310,5 +239,9 @@ class StartActivity : AppCompatActivity() {
             }
         }
         return false
+    }
+
+    override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        super.onSaveInstanceState(outState, outPersistentState)
     }
 }

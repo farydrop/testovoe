@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">testovoe</string>
+    <string name="join_the_club">Join the club</string>
+    <string name="title">Rainbow \ngoldstation</string>
+    <string name="start">Start</string>
+    <string name="your_buttlestation_is">Your \nbuttlestation \n# is:</string>
+    <string name="number">J321</string>
 </resources>
